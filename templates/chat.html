@@ -2,133 +2,74 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width">
-<script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
 
 <style>
 body{margin:0;background:#0b141a;color:white;font-family:sans-serif;}
-.chat{height:75vh;overflow:auto;padding:10px;}
-.msg{padding:8px;margin:5px;border-radius:10px;max-width:70%;}
+.header{background:#202c33;padding:15px;}
+#messages{height:75vh;overflow:auto;padding:10px;}
+.msg{padding:10px;margin:5px;border-radius:10px;max-width:70%;}
 .me{background:#005c4b;margin-left:auto;}
 .other{background:#202c33;}
-.input{display:flex;position:fixed;bottom:0;width:100%;}
-input{flex:1;padding:10px;}
-button{padding:10px;}
+.input{position:fixed;bottom:0;width:100%;display:flex;background:#202c33;}
+input{flex:1;padding:15px;border:none;}
+button{background:#00a884;border:none;padding:15px;color:white;}
 </style>
 </head>
 
 <body>
 
-<h3>{{other}}</h3>
-<div id="typing"></div>
-<div id="chat" class="chat"></div>
+<div class="header">
+{{to_user}} <span id="typing"></span>
+</div>
+
+<div id="messages">
+{% for m in messages %}
+<div class="msg {% if m[0]==user %}me{% else %}other{% endif %}">
+{{m[1]}}
+</div>
+{% endfor %}
+</div>
 
 <div class="input">
 <input id="msg">
-<input type="file" id="file">
 <button onclick="send()">➤</button>
-<button onclick="sendFile()">📎</button>
-<button onclick="record()">🎤</button>
 </div>
 
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+
 <script>
-let socket=io();
-let user="{{user}}";
-let other="{{other}}";
+var socket = io();
+var room = "{{room}}";
+var user = "{{user}}";
+var to = "{{to_user}}";
 
-socket.emit("join",{user:user,other:other});
-socket.emit("online",user);
-
-window.onbeforeunload=()=>socket.emit("offline",user);
-
-function addMsg(data){
-let d=document.createElement("div");
-d.classList.add("msg");
-if(data.user===user)d.classList.add("me");else d.classList.add("other");
-
-if(data.type==="img"){
-d.innerHTML=`<img src="${data.msg}" width="150">`;
-}else if(data.type==="audio"){
-d.innerHTML=`<audio controls src="${data.msg}"></audio>`;
-}else{
-d.innerHTML=data.msg+" <small id='"+data.id+"'>"+data.status+"</small>";
-}
-
-document.getElementById("chat").appendChild(d);
-}
-
-socket.on("message",(d)=>{
-d.id="m"+Date.now();
-addMsg(d);
-
-if(d.user!==user){
-socket.emit("delivered",d);
-setTimeout(()=>socket.emit("read",d),1000);
-}
-});
-
-socket.on("delivered",(d)=>{
-let el=document.getElementById(d.id);
-if(el)el.innerText="✔✔";
-});
-
-socket.on("read",(d)=>{
-let el=document.getElementById(d.id);
-if(el)el.innerText="✔✔💙";
-});
+socket.emit("join",{room:room});
 
 function send(){
-let m=document.getElementById("msg").value;
-socket.emit("message",{user:user,to:other,msg:m,type:"text"});
-document.getElementById("msg").value="";
+    let msg = document.getElementById("msg").value;
+    if(msg==="") return;
+
+    socket.emit("message",{room:room,user:user,to:to,msg:msg});
+    document.getElementById("msg").value="";
 }
 
-function sendFile(){
-let f=document.getElementById("file").files[0];
-let form=new FormData();
-form.append("file",f);
-
-fetch("/upload",{method:"POST",body:form})
-.then(r=>r.json())
-.then(res=>{
-let type="img";
-if(f.type.includes("audio")) type="audio";
-
-socket.emit("message",{user:user,to:other,msg:res.url,type:type});
-});
-}
-
-let mediaRecorder;
-function record(){
-navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
-mediaRecorder=new MediaRecorder(stream);
-mediaRecorder.start();
-
-setTimeout(()=>{
-mediaRecorder.stop();
-mediaRecorder.ondataavailable=e=>{
-let blob=e.data;
-let file=new File([blob],"audio.webm");
-
-let form=new FormData();
-form.append("file",file);
-
-fetch("/upload",{method:"POST",body:form})
-.then(r=>r.json())
-.then(res=>{
-socket.emit("message",{user:user,to:other,msg:res.url,type:"audio"});
-});
-};
-},3000);
-});
-}
-
-document.getElementById("msg").addEventListener("input",()=>{
-socket.emit("typing",{user:user,to:other});
+document.getElementById("msg").addEventListener("keypress", function(e){
+    socket.emit("typing",{room:room,user:user});
+    if(e.key==="Enter"){
+        send();
+    }
 });
 
-socket.on("typing",(u)=>{
-document.getElementById("typing").innerText=u+" escribiendo...";
-setTimeout(()=>document.getElementById("typing").innerText="",1000);
+socket.on("message", function(data){
+    let div=document.createElement("div");
+    div.className="msg "+(data.user===user?"me":"other");
+    div.innerText=data.msg;
+    document.getElementById("messages").appendChild(div);
+});
+
+socket.on("typing", function(data){
+    document.getElementById("typing").innerText="escribiendo...";
+    setTimeout(()=>{document.getElementById("typing").innerText=""},1000);
 });
 </script>
 
