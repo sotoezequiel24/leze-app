@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+</head>
+
+<body style="background:#111; color:white;">
+
+<h2>L&E ❤️</h2>
+<div id="chat"></div>
+
+<input id="msg">
+<button onclick="sendMsg()">Enviar</button>
+
+<script>
+var socket = io();
+
+socket.on("message", function(data){
+    let div = document.createElement("div");
+    div.innerText = data.user + ": " + data.msg;
+    document.getElementById("chat").appendChild(div);
+});
+
+function sendMsg(){
+    let msg = document.getElementById("msg").value;
+    socket.emit("message",{msg:msg});
+}
+</script>
+
+</body>
+</html>
