@@ -6,132 +6,130 @@
 
 <style>
 body{margin:0;background:#0b141a;color:white;font-family:sans-serif;}
-.header{background:#202c33;padding:10px;}
-.chat{height:70vh;overflow:auto;padding:10px;}
-.msg{max-width:70%;padding:8px;margin:5px;border-radius:10px;}
+.chat{height:75vh;overflow:auto;padding:10px;}
+.msg{padding:8px;margin:5px;border-radius:10px;max-width:70%;}
 .me{background:#005c4b;margin-left:auto;}
 .other{background:#202c33;}
-.input{display:flex;position:fixed;bottom:0;width:100%;background:#202c33;}
-input{flex:1;padding:10px;border:none;border-radius:20px;margin:5px;}
-button{margin:5px;border:none;padding:10px;border-radius:50%;background:#00a884;color:white;}
+.input{display:flex;position:fixed;bottom:0;width:100%;}
+input{flex:1;padding:10px;}
+button{padding:10px;}
 </style>
 </head>
 
 <body>
 
-<div class="header">
-L&E ❤️
-<select onchange="setStatus(this.value)">
-<option>En línea</option>
-<option>Ocupado</option>
-<option>Ausente</option>
-</select>
-</div>
-
+<h3>{{other}}</h3>
 <div id="typing"></div>
-<div class="chat" id="chat"></div>
+<div id="chat" class="chat"></div>
 
 <div class="input">
-<input id="msg" placeholder="Mensaje...">
+<input id="msg">
 <input type="file" id="file">
-<button onclick="sendMsg()">➤</button>
-<button onclick="sendFile()">📷</button>
-<button onclick="recordAudio()">🎤</button>
+<button onclick="send()">➤</button>
+<button onclick="sendFile()">📎</button>
+<button onclick="record()">🎤</button>
 </div>
 
 <script>
-let socket = io();
-let user = "{{user}}";
+let socket=io();
+let user="{{user}}";
+let other="{{other}}";
 
-document.getElementById("msg").addEventListener("input",()=>{
-    socket.emit("typing");
+socket.emit("join",{user:user,other:other});
+socket.emit("online",user);
+
+window.onbeforeunload=()=>socket.emit("offline",user);
+
+function addMsg(data){
+let d=document.createElement("div");
+d.classList.add("msg");
+if(data.user===user)d.classList.add("me");else d.classList.add("other");
+
+if(data.type==="img"){
+d.innerHTML=`<img src="${data.msg}" width="150">`;
+}else if(data.type==="audio"){
+d.innerHTML=`<audio controls src="${data.msg}"></audio>`;
+}else{
+d.innerHTML=data.msg+" <small id='"+data.id+"'>"+data.status+"</small>";
+}
+
+document.getElementById("chat").appendChild(d);
+}
+
+socket.on("message",(d)=>{
+d.id="m"+Date.now();
+addMsg(d);
+
+if(d.user!==user){
+socket.emit("delivered",d);
+setTimeout(()=>socket.emit("read",d),1000);
+}
 });
 
-socket.on("typing",(u)=>{
-    document.getElementById("typing").innerText = u + " escribiendo...";
-    setTimeout(()=>document.getElementById("typing").innerText="",1000);
+socket.on("delivered",(d)=>{
+let el=document.getElementById(d.id);
+if(el)el.innerText="✔✔";
 });
 
-socket.on("message",(data)=>{
-    let div = document.createElement("div");
-    div.classList.add("msg");
-
-    if(data.user===user) div.classList.add("me");
-    else div.classList.add("other");
-
-    if(data.type==="text"){
-        div.innerHTML = data.msg + " ✔";
-    }
-    if(data.type==="img"){
-        div.innerHTML = `<img src="${data.msg}" width="200">`;
-    }
-    if(data.type==="audio"){
-        div.innerHTML = `<audio controls src="${data.msg}"></audio>`;
-    }
-    if(data.type==="video"){
-        div.innerHTML = `<video controls width="200" src="${data.msg}"></video>`;
-    }
-
-    document.getElementById("chat").appendChild(div);
-    document.getElementById("chat").scrollTop=99999;
-
-    socket.emit("read", data.id);
+socket.on("read",(d)=>{
+let el=document.getElementById(d.id);
+if(el)el.innerText="✔✔💙";
 });
 
-function sendMsg(){
-    let msg = document.getElementById("msg").value;
-    socket.emit("message",{user:user,msg:msg,type:"text"});
-    document.getElementById("msg").value="";
+function send(){
+let m=document.getElementById("msg").value;
+socket.emit("message",{user:user,to:other,msg:m,type:"text"});
+document.getElementById("msg").value="";
 }
 
 function sendFile(){
-    let file = document.getElementById("file").files[0];
-    let form = new FormData();
-    form.append("file", file);
+let f=document.getElementById("file").files[0];
+let form=new FormData();
+form.append("file",f);
 
-    fetch("/upload",{method:"POST",body:form})
-    .then(r=>r.json())
-    .then(data=>{
-        let type = "img";
-        if(file.type.includes("video")) type="video";
+fetch("/upload",{method:"POST",body:form})
+.then(r=>r.json())
+.then(res=>{
+let type="img";
+if(f.type.includes("audio")) type="audio";
 
-        socket.emit("message",{user:user,msg:data.url,type:type});
-    });
+socket.emit("message",{user:user,to:other,msg:res.url,type:type});
+});
 }
 
-let recorder, audioChunks;
-
-function recordAudio(){
+let mediaRecorder;
+function record(){
 navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
-recorder=new MediaRecorder(stream);
-recorder.start();
-audioChunks=[];
-
-recorder.ondataavailable=e=>audioChunks.push(e.data);
+mediaRecorder=new MediaRecorder(stream);
+mediaRecorder.start();
 
 setTimeout(()=>{
-recorder.stop();
-recorder.onstop=()=>{
-let blob=new Blob(audioChunks);
+mediaRecorder.stop();
+mediaRecorder.ondataavailable=e=>{
+let blob=e.data;
 let file=new File([blob],"audio.webm");
+
 let form=new FormData();
 form.append("file",file);
 
 fetch("/upload",{method:"POST",body:form})
 .then(r=>r.json())
-.then(data=>{
-socket.emit("message",{user:user,msg:data.url,type:"audio"});
+.then(res=>{
+socket.emit("message",{user:user,to:other,msg:res.url,type:"audio"});
 });
 };
 },3000);
 });
 }
 
-function setStatus(status){
-fetch("/set_status",{method:"POST",
-headers:{"Content-Type":"application/x-www-form-urlencoded"},
-body:"status="+status});
-}
+document.getElementById("msg").addEventListener("input",()=>{
+socket.emit("typing",{user:user,to:other});
+});
+
+socket.on("typing",(u)=>{
+document.getElementById("typing").innerText=u+" escribiendo...";
+setTimeout(()=>document.getElementById("typing").innerText="",1000);
+});
 </script>
 
 </body>
