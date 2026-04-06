@@ -3,9 +3,27 @@
 <head>
 <meta name="viewport" content="width=device-width">
 </head>
+
 <body style="background:#0b141a;color:white;font-family:sans-serif;">
 
 <h2>L&E ❤️</h2>
+
+<a href="/logout" style="color:red;">Cerrar sesión</a>
+
+<!-- CHAT CON VOS MISMO -->
+<div style="padding:15px;border-bottom:1px solid gray;">
+<a href="/chat/{{user}}" style="color:white;text-decoration:none;">
+<b>📌 Mensajes guardados</b><br>
+<span>Notas personales</span>
+</a>
+</div>
+
+<!-- CONTACTOS -->
+{% if users|length == 0 %}
+<p style="text-align:center;margin-top:50px;">
+No hay contactos aún 😢
+</p>
+{% endif %}
 
 {% for u in users %}
 <div style="padding:15px;border-bottom:1px solid gray;">
