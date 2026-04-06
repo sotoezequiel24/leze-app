@@ -1,1 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width">
+</head>
+<body style="background:#0b141a;color:white;font-family:sans-serif;">
 
+<h2>L&E ❤️</h2>
+
+{% for u in users %}
+<div style="padding:15px;border-bottom:1px solid gray;">
+<a href="/chat/{{u[0]}}" style="color:white;text-decoration:none;">
+<b>{{u[0]}}</b><br>
+<span>{{u[1]}}</span><br>
+<small>Última vez: {{u[2]}}</small>
+</a>
+</div>
+{% endfor %}
+
+</body>
+</html>
