@@ -145,6 +145,18 @@ def chat(to_user):
         room="_".join(sorted([user,to_user]))
     )
 
+# ---------- AGREGAR CONTACTO ----------
+@app.route("/add", methods=["GET","POST"])
+def add_contact():
+    if "user" not in session:
+        return redirect("/")
+
+    if request.method == "POST":
+        username = request.form["username"]
+        return redirect(f"/chat/{username}")
+
+    return render_template("add.html")
+
 # ---------- SOCKET ----------
 @socketio.on("join")
 def on_join(data):
