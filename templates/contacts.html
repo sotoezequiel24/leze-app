@@ -1,39 +1,119 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta name="viewport" content="width=device-width">
+    <title>Chats</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial;
+            background: linear-gradient(180deg, #0f9d58, #a7ffeb);
+        }
+
+        .header {
+            background: #075e54;
+            color: white;
+            padding: 15px;
+            font-size: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .chat-list {
+            padding: 10px;
+        }
+
+        .chat {
+            background: white;
+            border-radius: 15px;
+            padding: 12px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: black;
+        }
+
+        .chat:hover {
+            background: #f1f1f1;
+        }
+
+        .avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: #25d366;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+
+        .info {
+            flex: 1;
+        }
+
+        .name {
+            font-weight: bold;
+        }
+
+        .msg {
+            color: gray;
+            font-size: 14px;
+        }
+
+        .time {
+            font-size: 12px;
+            color: gray;
+        }
+
+        .add-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #25d366;
+            color: white;
+            border-radius: 50%;
+            width: 55px;
+            height: 55px;
+            font-size: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+        }
+    </style>
 </head>
 
-<body style="background:#0b141a;color:white;font-family:sans-serif;">
+<body>
 
-<h2>L&E ❤️</h2>
-
-<a href="/logout" style="color:red;">Cerrar sesión</a>
-
-<!-- CHAT CON VOS MISMO -->
-<div style="padding:15px;border-bottom:1px solid gray;">
-<a href="/chat/{{user}}" style="color:white;text-decoration:none;">
-<b>📌 Mensajes guardados</b><br>
-<span>Notas personales</span>
-</a>
+<div class="header">
+    {{ user }}
+    <a href="/" style="color:white; text-decoration:none;">Salir</a>
 </div>
 
-<!-- CONTACTOS -->
-{% if users|length == 0 %}
-<p style="text-align:center;margin-top:50px;">
-No hay contactos aún 😢
-</p>
-{% endif %}
+<div class="chat-list">
 
-{% for u in users %}
-<div style="padding:15px;border-bottom:1px solid gray;">
-<a href="/chat/{{u[0]}}" style="color:white;text-decoration:none;">
-<b>{{u[0]}}</b><br>
-<span>{{u[1]}}</span><br>
-<small>Última vez: {{u[2]}}</small>
-</a>
+    {% for u, msg, time in users %}
+    <a class="chat" href="/chat/{{u}}">
+        <div class="avatar">
+            {{ u[0]|upper }}
+        </div>
+
+        <div class="info">
+            <div class="name">{{ u }}</div>
+            <div class="msg">{{ msg }}</div>
+        </div>
+
+        <div class="time">{{ time }}</div>
+    </a>
+    {% endfor %}
+
 </div>
-{% endfor %}
+
+<a class="add-btn" href="/add">+</a>
 
 </body>
 </html>
