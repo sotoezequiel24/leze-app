@@ -4,7 +4,7 @@ import sqlite3, time, os
 
 app = Flask(__name__)
 app.secret_key = "secret"
-socketio = SocketIO(app)
+socketio = SocketIO(app, async_mode="threading")
 
 # ---------- DB ----------
 def db():
