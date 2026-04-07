@@ -37,16 +37,28 @@ def login():
 
         conn = db()
         c = conn.cursor()
-        c.execute("SELECT * FROM users WHERE username=? AND password=?", (u,p))
+
+        # Buscar usuario
+        c.execute("SELECT * FROM users WHERE username=?", (u,))
         user = c.fetchone()
-        conn.close()
 
         if user:
+            # Si existe, verificar contraseña
+            if user[1] == p:
+                session["user"] = u
+                conn.close()
+                return redirect("/contacts")
+        else:
+            # Si NO existe → lo crea
+            c.execute("INSERT INTO users VALUES (?,?)", (u,p))
+            conn.commit()
             session["user"] = u
+            conn.close()
             return redirect("/contacts")
 
-    return render_template("login.html")
+        conn.close()
 
+    return render_template("login.html")
 # ---------- REGISTER ----------
 @app.route("/register", methods=["GET","POST"])
 def register():
